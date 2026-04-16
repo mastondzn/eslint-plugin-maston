@@ -20,24 +20,17 @@ vi.mock('fs', async (importOriginal) => {
 
 function mockDir(entries: { name: string; isFile: boolean; isDirectory: boolean }[]) {
     vi.mocked(fs.readdirSync).mockReturnValue(
-        entries.map((e) =>
-            Object.assign(new (fs.Dirent as any)(), {
-                name: e.name,
-                isFile: () => e.isFile,
-                isDirectory: () => e.isDirectory,
-                isBlockDevice: () => false,
-                isCharacterDevice: () => false,
-                isSymbolicLink: () => false,
-                isFIFO: () => false,
-                isSocket: () => false,
-            }),
-        ) as any,
+        entries.map((e) => ({
+            name: e.name,
+            isFile: () => e.isFile,
+            isDirectory: () => e.isDirectory,
+        })) as unknown as ReturnType<typeof fs.readdirSync>,
     );
 }
 
 const tester = new RuleTester();
 
-tester.run('enforce-barrel-exports', commandBarrelFile, {
+tester.run('command-barrel-file', commandBarrelFile, {
     valid: [
         {
             // Not a barrel file — rule ignores it entirely
