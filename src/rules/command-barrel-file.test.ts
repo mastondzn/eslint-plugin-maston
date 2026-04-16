@@ -1,5 +1,6 @@
 import * as fs from 'node:fs';
 
+import * as tsParser from '@typescript-eslint/parser';
 import { RuleTester } from '@typescript-eslint/rule-tester';
 import dedent from 'ts-dedent';
 import { afterAll, describe, it, vi } from 'vitest';
@@ -28,7 +29,11 @@ function mockDir(entries: { name: string; isFile: boolean; isDirectory: boolean 
     );
 }
 
-const tester = new RuleTester();
+const tester = new RuleTester({
+    languageOptions: {
+        parser: tsParser,
+    },
+});
 
 tester.run('command-barrel-file', commandBarrelFile, {
     valid: [
