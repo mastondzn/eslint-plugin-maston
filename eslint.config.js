@@ -14,16 +14,12 @@ export default maston(
         },
     },
     {
-        rules: {
-            'ts/no-non-null-assertion': 'warn',
-            'unicorn/template-indent': ['warn', { indent: 4 }],
-        },
-    },
-    {
         plugins: {
             maston: plugin,
         },
         rules: {
+            'ts/no-non-null-assertion': 'warn',
+            'unicorn/template-indent': ['warn', { indent: 4 }],
             'maston/command-barrel-file': 'warn',
         },
     },

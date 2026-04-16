@@ -84,6 +84,36 @@ tester.run('command-barrel-file', commandBarrelFile, {
                 ]);
             },
         },
+        {
+            name: 'named exports work',
+            filename: '/project/src/index.ts',
+            code: dedent`
+                // @barrel-file
+                export { Button } from './Button';
+                export { Input } from './Input';
+            `,
+            before() {
+                mockDir([
+                    { name: 'Button.ts', isFile: true, isDirectory: false },
+                    { name: 'Input.ts', isFile: true, isDirectory: false },
+                ]);
+            },
+        },
+        {
+            name: 'mixed named and star exports',
+            filename: '/project/src/index.ts',
+            code: dedent`
+                // @barrel-file
+                export * from './Button';
+                export { Input } from './Input';
+            `,
+            before() {
+                mockDir([
+                    { name: 'Button.ts', isFile: true, isDirectory: false },
+                    { name: 'Input.ts', isFile: true, isDirectory: false },
+                ]);
+            },
+        },
     ],
 
     invalid: [
@@ -136,6 +166,26 @@ tester.run('command-barrel-file', commandBarrelFile, {
                 // @barrel-file
                 export * from './Bar';
                 export * from './Foo';
+            `,
+        },
+        {
+            name: 'missing export with named export',
+            filename: '/project/src/index.ts',
+            code: dedent`
+                // @barrel-file
+                export { Button } from './Button';
+            `,
+            before() {
+                mockDir([
+                    { name: 'Button.ts', isFile: true, isDirectory: false },
+                    { name: 'Modal.ts', isFile: true, isDirectory: false },
+                ]);
+            },
+            errors: [{ messageId: 'missingExport', data: { name: 'Modal' } }],
+            output: dedent`
+                // @barrel-file
+                export { Button } from './Button';
+                export * from './Modal';
             `,
         },
     ],
