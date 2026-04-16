@@ -1,0 +1,61 @@
+{
+    "name": "eslint-plugin-maston",
+    "type": "module",
+    "version": "0.0.1",
+    "packageManager": "pnpm@10.6.5",
+    "description": "Maston's custom ESLint rules",
+    "author": "Maston (https://github.com/mastondzn)",
+    "license": "MIT",
+    "homepage": "https://github.com/mastondzn/eslint-plugin-maston#readme",
+    "repository": "https://github.com/mastondzn/eslint-plugin-maston",
+    "bugs": {
+        "url": "https://github.com/mastondzn/eslint-plugin-maston/issues"
+    },
+    "keywords": [
+        "eslint-plugin",
+        "eslint"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.mts",
+            "import": "./dist/index.mjs",
+            "default": "./dist/index.mjs"
+        }
+    },
+    "main": "dist/index.mjs",
+    "publishConfig": {
+        "access": "public",
+        "provenance": true
+    },
+    "scripts": {
+        "build": "tsdown --entry ./src/index.ts --out ./dist --unbundle --sourcemap",
+        "lint": "eslint .",
+        "typecheck": "tsc --noEmit",
+        "format": "prettier . --write !pnpm-lock.yaml",
+        "format:check": "prettier --check . !pnpm-lock.yaml",
+        "test": "vitest",
+        "release": "bumpp"
+    },
+    "peerDependencies": {
+        "eslint": "^10"
+    },
+    "dependencies": {
+        "@typescript-eslint/utils": "^8.58.2"
+    },
+    "devDependencies": {
+        "@mastondzn/eslint": "^1.8.0",
+        "@types/node": "^25.6.0",
+        "@typescript-eslint/parser": "^8.58.2",
+        "@typescript-eslint/rule-tester": "^8.58.2",
+        "bumpp": "^11.0.1",
+        "eslint": "^10.2.0",
+        "eslint-vitest-rule-tester": "^3.1.0",
+        "jiti": "^2.6.1",
+        "prettier": "^3.8.3",
+        "ts-dedent": "^2.2.0",
+        "tsdown": "^0.21.9",
+        "typescript": "^6.0.2",
+        "vite": "^8.0.8",
+        "vitest": "^4.1.4"
+    }
+}
