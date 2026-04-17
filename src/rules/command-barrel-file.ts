@@ -1,4 +1,4 @@
-import * as fs from 'node:fs';
+import { readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 import { type TSESTree, AST_NODE_TYPES } from '@typescript-eslint/utils';
@@ -16,9 +16,7 @@ export const commandBarrelFile = createRule({
             missingExport: "Barrel file is missing export for '{{name}}'",
         },
     },
-    defaultOptions: [],
     create(context) {
-        const sourceCode = context.sourceCode;
         const hasBarrelComment = context.sourceCode.getAllComments().some((c) => c.value.trim() === '@barrel-file');
         if (!hasBarrelComment) return {};
 
@@ -35,7 +33,14 @@ export const commandBarrelFile = createRule({
             ExportAllDeclaration: (node) => recordExportSource(node.source),
             'Program:exit': (node) => {
                 const dir = path.dirname(context.filename);
-                const entries = fs.readdirSync(dir, { withFileTypes: true });
+                let dirStat;
+                try {
+                    dirStat = statSync(dir);
+                } catch {
+                    return;
+                }
+                if (!dirStat.isDirectory()) return;
+                const entries = readdirSync(dir, { withFileTypes: true });
 
                 const expected = entries
                     .filter((e) => {
@@ -44,7 +49,7 @@ export const commandBarrelFile = createRule({
                         const { name, ext } = path.parse(e.name);
                         if (!['.ts', '.tsx'].includes(ext)) return false;
                         if (name === 'index') return false; // skip the barrel itself
-                        if (/(?:test|spec)\.(?:j|t)sx?$/.test(e.name)) return false; // skip test/spec files
+                        if (/\.(?:test|spec)\.(?:j|t)sx?$/.test(e.name)) return false; // skip test/spec files
                         return true;
                     })
                     .map((e) => (e.isDirectory() ? `./${e.name}` : `./${path.parse(e.name).name}`));
@@ -60,11 +65,11 @@ export const commandBarrelFile = createRule({
                     data: { name: displayNames.join(', ') },
                     fix(fixer) {
                         const lines = missing.map((m) => `export * from '${m}';`).join('\n');
-                        const lastToken = sourceCode.getLastToken(node);
+                        const lastToken = context.sourceCode.getLastToken(node);
                         if (lastToken) {
                             return fixer.insertTextAfter(lastToken, `\n${lines}`);
                         }
-                        const barrelComment = sourceCode
+                        const barrelComment = context.sourceCode
                             .getAllComments()
                             .find((c) => c.value.trim() === '@barrel-file');
                         if (barrelComment) {

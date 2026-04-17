@@ -1,9 +1,8 @@
-import * as fs from 'node:fs';
-
-import * as tsParser from '@typescript-eslint/parser';
+import * as parser from '@typescript-eslint/parser';
 import { RuleTester } from '@typescript-eslint/rule-tester';
-import dedent from 'ts-dedent';
-import { afterAll, describe, it, vi } from 'vitest';
+import { fs, vol } from 'memfs';
+import { dedent } from 'ts-dedent';
+import { afterAll, afterEach, describe, it, vi } from 'vitest';
 
 import { commandBarrelFile } from './command-barrel-file';
 
@@ -11,34 +10,27 @@ RuleTester.afterAll = afterAll;
 RuleTester.describe = describe;
 RuleTester.it = it;
 
-vi.mock('fs', async (importOriginal) => {
-    const actual = await importOriginal<typeof import('node:fs')>();
-    return {
-        ...actual,
-        readdirSync: vi.fn(),
-    };
-});
+vi.mock('node:fs', () => fs);
+afterEach(() => vol.reset());
 
 function mockDir(entries: { name: string; isFile: boolean; isDirectory: boolean }[]) {
-    vi.mocked(fs.readdirSync).mockReturnValue(
-        entries.map((e) => ({
-            name: e.name,
-            isFile: () => e.isFile,
-            isDirectory: () => e.isDirectory,
-        })) as unknown as ReturnType<typeof fs.readdirSync>,
-    );
+    const root = '/project/src';
+    fs.mkdirSync(root, { recursive: true });
+    for (const e of entries) {
+        const p = `${root}/${e.name}`;
+        if (e.isDirectory) {
+            fs.mkdirSync(p, { recursive: true });
+        } else {
+            fs.writeFileSync(p, '');
+        }
+    }
 }
 
-const tester = new RuleTester({
-    languageOptions: {
-        parser: tsParser,
-    },
-});
+const tester = new RuleTester({ languageOptions: { parser } });
 
 tester.run('command-barrel-file', commandBarrelFile, {
     valid: [
         {
-            // Not a barrel file — rule ignores it entirely
             name: 'no barrel comment → skip',
             filename: '/project/src/index.ts',
             code: `export * from './Button';`,
@@ -47,10 +39,9 @@ tester.run('command-barrel-file', commandBarrelFile, {
             },
         },
         {
-            // All present — no error
             name: 'all files exported',
             filename: '/project/src/index.ts',
-            code: dedent`
+            code: dedent /* ts */ `
                 // @barrel-file
                 export * from './Button';
                 export * from './Input';
@@ -59,15 +50,14 @@ tester.run('command-barrel-file', commandBarrelFile, {
                 mockDir([
                     { name: 'Button.ts', isFile: true, isDirectory: false },
                     { name: 'Input.ts', isFile: true, isDirectory: false },
-                    { name: 'index.ts', isFile: true, isDirectory: false }, // self, ignored
+                    { name: 'index.ts', isFile: true, isDirectory: false },
                 ]);
             },
         },
         {
-            // Subdirectory exported
             name: 'subdir with export * from',
             filename: '/project/src/index.ts',
-            code: dedent`
+            code: dedent /* ts */ `
                 // @barrel-file
                 export * from './utils';
             `,
@@ -78,7 +68,7 @@ tester.run('command-barrel-file', commandBarrelFile, {
         {
             name: 'test files get ignored',
             filename: '/project/src/index.ts',
-            code: dedent`
+            code: dedent /* ts */ `
                 // @barrel-file
                 export * from './Button';
             `,
@@ -92,7 +82,7 @@ tester.run('command-barrel-file', commandBarrelFile, {
         {
             name: 'named exports work',
             filename: '/project/src/index.ts',
-            code: dedent`
+            code: dedent /* ts */ `
                 // @barrel-file
                 export { Button } from './Button';
                 export { Input } from './Input';
@@ -107,7 +97,7 @@ tester.run('command-barrel-file', commandBarrelFile, {
         {
             name: 'mixed named and star exports',
             filename: '/project/src/index.ts',
-            code: dedent`
+            code: dedent /* ts */ `
                 // @barrel-file
                 export * from './Button';
                 export { Input } from './Input';
@@ -125,7 +115,7 @@ tester.run('command-barrel-file', commandBarrelFile, {
         {
             name: 'missing one file export',
             filename: '/project/src/index.ts',
-            code: dedent`
+            code: dedent /* ts */ `
                 // @barrel-file
                 export * from './Button';
             `,
@@ -136,8 +126,7 @@ tester.run('command-barrel-file', commandBarrelFile, {
                 ]);
             },
             errors: [{ messageId: 'missingExport', data: { name: 'Modal' } }],
-            // Verify the autofix appends the missing line
-            output: dedent`
+            output: dedent /* ts */ `
                 // @barrel-file
                 export * from './Button';
                 export * from './Modal';
@@ -151,7 +140,7 @@ tester.run('command-barrel-file', commandBarrelFile, {
                 mockDir([{ name: 'hooks', isFile: false, isDirectory: true }]);
             },
             errors: [{ messageId: 'missingExport', data: { name: 'hooks' } }],
-            output: dedent`
+            output: dedent /* ts */ `
                 // @barrel-file
                 export * from './hooks';
             `,
@@ -167,7 +156,7 @@ tester.run('command-barrel-file', commandBarrelFile, {
                 ]);
             },
             errors: [{ messageId: 'missingExport', data: { name: 'Bar, Foo' } }],
-            output: dedent`
+            output: dedent /* ts */ `
                 // @barrel-file
                 export * from './Bar';
                 export * from './Foo';
@@ -176,7 +165,7 @@ tester.run('command-barrel-file', commandBarrelFile, {
         {
             name: 'missing export with named export',
             filename: '/project/src/index.ts',
-            code: dedent`
+            code: dedent /* ts */ `
                 // @barrel-file
                 export { Button } from './Button';
             `,
@@ -187,7 +176,7 @@ tester.run('command-barrel-file', commandBarrelFile, {
                 ]);
             },
             errors: [{ messageId: 'missingExport', data: { name: 'Modal' } }],
-            output: dedent`
+            output: dedent /* ts */ `
                 // @barrel-file
                 export { Button } from './Button';
                 export * from './Modal';
