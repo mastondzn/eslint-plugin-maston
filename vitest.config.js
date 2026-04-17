@@ -6,5 +6,6 @@ export default defineConfig({
             reporter: ['text-summary', 'json', 'json-summary'],
             reportOnFailure: true,
         },
+        setupFiles: ['./src/tests/setup.ts'],
     },
 });

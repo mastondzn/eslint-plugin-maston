@@ -1,32 +1,7 @@
-import * as parser from '@typescript-eslint/parser';
-import { RuleTester } from '@typescript-eslint/rule-tester';
-import { fs, vol } from 'memfs';
 import { dedent } from 'ts-dedent';
-import { afterAll, afterEach, describe, it, vi } from 'vitest';
 
-import { commandBarrelFile } from './command-barrel-file';
-
-RuleTester.afterAll = afterAll;
-RuleTester.describe = describe;
-RuleTester.it = it;
-
-vi.mock('node:fs', () => fs);
-afterEach(() => vol.reset());
-
-function mockDir(entries: { name: string; isFile: boolean; isDirectory: boolean }[]) {
-    const root = '/project/src';
-    fs.mkdirSync(root, { recursive: true });
-    for (const e of entries) {
-        const p = `${root}/${e.name}`;
-        if (e.isDirectory) {
-            fs.mkdirSync(p, { recursive: true });
-        } else {
-            fs.writeFileSync(p, '');
-        }
-    }
-}
-
-const tester = new RuleTester({ languageOptions: { parser } });
+import { commandBarrelFile } from '../rules/command-barrel-file';
+import { mockDir, tester } from './utils';
 
 tester.run('command-barrel-file', commandBarrelFile, {
     valid: [
@@ -34,9 +9,7 @@ tester.run('command-barrel-file', commandBarrelFile, {
             name: 'no barrel comment → skip',
             filename: '/project/src/index.ts',
             code: `export * from './Button';`,
-            before() {
-                mockDir([{ name: 'Button.ts', isFile: true, isDirectory: false }]);
-            },
+            before: () => mockDir([{ name: 'Button.ts', isFile: true, isDirectory: false }]),
         },
         {
             name: 'all files exported',
@@ -46,7 +19,7 @@ tester.run('command-barrel-file', commandBarrelFile, {
                 export * from './Button';
                 export * from './Input';
             `,
-            before() {
+            before: () => {
                 mockDir([
                     { name: 'Button.ts', isFile: true, isDirectory: false },
                     { name: 'Input.ts', isFile: true, isDirectory: false },
@@ -61,9 +34,7 @@ tester.run('command-barrel-file', commandBarrelFile, {
                 // @barrel-file
                 export * from './utils';
             `,
-            before() {
-                mockDir([{ name: 'utils', isFile: false, isDirectory: true }]);
-            },
+            before: () => mockDir([{ name: 'utils', isFile: false, isDirectory: true }]),
         },
         {
             name: 'test files get ignored',
@@ -72,7 +43,7 @@ tester.run('command-barrel-file', commandBarrelFile, {
                 // @barrel-file
                 export * from './Button';
             `,
-            before() {
+            before: () => {
                 mockDir([
                     { name: 'Button.ts', isFile: true, isDirectory: false },
                     { name: 'Button.test.ts', isFile: true, isDirectory: false },
@@ -87,7 +58,8 @@ tester.run('command-barrel-file', commandBarrelFile, {
                 export { Button } from './Button';
                 export { Input } from './Input';
             `,
-            before() {
+
+            before: () => {
                 mockDir([
                     { name: 'Button.ts', isFile: true, isDirectory: false },
                     { name: 'Input.ts', isFile: true, isDirectory: false },
@@ -102,7 +74,8 @@ tester.run('command-barrel-file', commandBarrelFile, {
                 export * from './Button';
                 export { Input } from './Input';
             `,
-            before() {
+
+            before: () => {
                 mockDir([
                     { name: 'Button.ts', isFile: true, isDirectory: false },
                     { name: 'Input.ts', isFile: true, isDirectory: false },
@@ -119,7 +92,8 @@ tester.run('command-barrel-file', commandBarrelFile, {
                 // @barrel-file
                 export * from './Button';
             `,
-            before() {
+
+            before: () => {
                 mockDir([
                     { name: 'Button.ts', isFile: true, isDirectory: false },
                     { name: 'Modal.ts', isFile: true, isDirectory: false },
@@ -136,20 +110,18 @@ tester.run('command-barrel-file', commandBarrelFile, {
             name: 'missing subdir export',
             filename: '/project/src/index.ts',
             code: `// @barrel-file`,
-            before() {
-                mockDir([{ name: 'hooks', isFile: false, isDirectory: true }]);
-            },
-            errors: [{ messageId: 'missingExport', data: { name: 'hooks' } }],
+            before: () => mockDir([{ name: 'hooks', isFile: false, isDirectory: true }]),
             output: dedent /* ts */ `
                 // @barrel-file
                 export * from './hooks';
             `,
+            errors: [{ messageId: 'missingExport', data: { name: 'hooks' } }],
         },
         {
             name: 'empty barrel with multiple missing',
             filename: '/project/src/index.ts',
             code: `// @barrel-file`,
-            before() {
+            before: () => {
                 mockDir([
                     { name: 'Foo.ts', isFile: true, isDirectory: false },
                     { name: 'Bar.ts', isFile: true, isDirectory: false },
@@ -169,7 +141,7 @@ tester.run('command-barrel-file', commandBarrelFile, {
                 // @barrel-file
                 export { Button } from './Button';
             `,
-            before() {
+            before: () => {
                 mockDir([
                     { name: 'Button.ts', isFile: true, isDirectory: false },
                     { name: 'Modal.ts', isFile: true, isDirectory: false },
